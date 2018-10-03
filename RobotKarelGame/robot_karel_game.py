@@ -1,12 +1,10 @@
 from tkinter import *
-import os
-
 import time
 
-
-sleep_time = 0.75
+sleep_time = 0.005
 tile_px_size = 50
-
+x_px_offset = 10
+y_px_offset = 8
 
 direction = {
    0: "North",
@@ -14,6 +12,22 @@ direction = {
    3: "East",
     1: "West"
  }
+karel_basic_addres ={
+    0: "../RobotKarelGame/pictures/karel/karelBasic/karelN.png",
+    2: "../RobotKarelGame/pictures/karel/karelBasic/karelS.png",
+    3: "../RobotKarelGame/pictures/karel/karelBasic/karelE.png",
+    1: "../RobotKarelGame/pictures/karel/karelBasic/karelW.png"
+}
+karel_picture_states = { # 0 no beeper, 1 has beeper
+    0: {    0: "../RobotKarelGame/pictures/karel/karelBasic/karelN.png",
+            2: "../RobotKarelGame/pictures/karel/karelBasic/karelS.png",
+            3: "../RobotKarelGame/pictures/karel/karelBasic/karelE.png",
+            1: "../RobotKarelGame/pictures/karel/karelBasic/karelW.png"},
+    1: {    0: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperN.png",
+            2: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperS.png",
+            3: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperE.png",
+            1: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperW.png"}
+}
 
 class Game:
 
@@ -21,9 +35,26 @@ class Game:
         self.karel = map.karel
         self.map = map
         self.robot_label =  Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0, highlightthickness=0)
+        self.beeper_picture = PhotoImage(file="../RobotKarelGame/pictures/beeper.png")
+        self.beeper_label_list = []
+        #todo change so beepers have field not just one
+
+    def paint_init_conditions_on_background(self):
+        self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
+        self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset, y=self.karel.y * tile_px_size + y_px_offset)
+        for i in range(0,len(self.map.beeper_x_coord_list)):
+            self.beeper_label_list.append(Label(self.map.master, image=self.beeper_picture, borderwidth=0, highlightthickness=0))
+            self.beeper_label_list[i].place(x=self.map.beeper_x_coord_list[i] * tile_px_size + 18, y=self.map.beeper_y_coord_list[i] * tile_px_size + 18)  # 16
+        self.map.master.update()
 
     def turn_left(self):
         self.karel.turn_left()
+        time.sleep(sleep_time)
+        self.robot_label.destroy()
+        self.map.karel.karel_picture= PhotoImage(file = karel_picture_states.get(self.map.karel.has_beeper).get(self.karel.facing_directionInt))
+        self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
+        self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset, y=self.karel.y * tile_px_size + y_px_offset)
+        self.map.master.update()
         print(self.karel.__str__())
 
     def is_in_front_of_the_wall(self):
@@ -72,9 +103,6 @@ class Game:
     def move(self):
         curr_x = self.karel.x
         curr_y = self.karel.y
-        x_px_offset=12
-        y_px_offset=8
-        is_move_possible=True
         time.sleep(sleep_time)
         if self.is_in_front_of_the_wall() == False:
             direction = self.karel.facing_directionInt
@@ -106,34 +134,57 @@ class Game:
         print("is on beeper: {0}".format(self.map.map_tiles[self.karel.y][self.karel.x].has_beeper))
         return self.map.map_tiles[self.karel.y][self.karel.x].has_beeper
 
-
     def pick_up_beeper(self):
         if self.is_on_beeper() == True:
             if self.karel.has_beeper == False:
                 self.karel.has_beeper = True
                 self.map.map_tiles[self.karel.y][self.karel.x].has_beeper = False
+                #finds the beeper label corresponding to place where karel is and deletes it
+                for i in range(0,len(self.map.beeper_x_coord_list)):
+                    if self.karel.x == self.map.beeper_x_coord_list[i] and self.karel.y == self.map.beeper_y_coord_list[i]:
+                        self.beeper_label_list[i].destroy()
+                        del self.beeper_label_list[i]
+                        del self.map.beeper_x_coord_list[i]
+                        del self.map.beeper_y_coord_list[i]
+                        self.map.master.update()
+                        break
+        #puts new picture of karel
+        self.robot_label.destroy()
+        time.sleep(sleep_time)
+        self.map.karel.karel_picture = PhotoImage(file=karel_picture_states.get(self.map.karel.has_beeper).get( self.karel.facing_directionInt))
+        self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
+        self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset,y=self.karel.y * tile_px_size + y_px_offset)
+        self.map.master.update()
 
     def put_down_beeper(self):
         if self.is_on_beeper() == False:
             if self.karel.has_beeper == True:
                 self.karel.has_beeper = False
                 self.map.map_tiles[self.karel.y][self.karel.x].has_beeper = True
+                #picture update
+                time.sleep(sleep_time)
+                self.map.beeper_x_coord_list.append(self.karel.x)
+                self.map.beeper_y_coord_list.append(self.karel.y)
+                self.robot_label.destroy()
+                self.beeper_label_list.append(Label(self.map.master, image=self.beeper_picture, borderwidth=0, highlightthickness=0))
+                self.beeper_label_list[-1].place(x=self.karel.x  * tile_px_size + 18,y=self.karel.y  * tile_px_size + 18)  # 16
+                self.map.karel.karel_picture = PhotoImage(file=karel_picture_states.get(self.map.karel.has_beeper).get( self.karel.facing_directionInt))
+                self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
+                self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset,y=self.karel.y * tile_px_size + y_px_offset)
+                self.map.master.update()
+                time.sleep(sleep_time/5)
 
 
 
 class RobotKarel:
 
-    def __init__(self,x,y,master):
+    def __init__(self,x,y):
         self.x = x
         self.y = y
         self.facing_directionInt = 0
         self.facing_directionStr = direction.get(self.facing_directionInt)
         self.has_beeper = False
-        #dir_path = os.path.dirname(os.path.realpath(__file__))
-        #print(dir_path)
-        self.karel_picture = PhotoImage(file = "../robot_karel/karel.png")
-
-
+        self.karel_picture = PhotoImage(file = "../RobotKarelGame/pictures/karel/karelBasic/karelN.png")
 
     def turn_left(self):
         self.facing_directionInt = (self.facing_directionInt+1)%4
@@ -204,15 +255,14 @@ class WorldMap:
         self.background_image = None
         self.master = master
 
+        self.beeper_x_coord_list=[]
+        self.beeper_y_coord_list=[]
+
         for j in range(0, y_dim):
             for k in range(0, x_dim):
                 self.map_tiles[j][k] = MapTile()
         self.map_tiles[karel.y][karel.x].has_robot = True
         self.karel = karel
-
-   # def set_backgroud_picture_label(self,image_address):
-    #    background = PhotoImage(file=image_address)
-   #     self.background_label = Label(self.master, background, borderwidth=0, highlightthickness=0)
 
     def __str__(self):
         result = ""
@@ -257,10 +307,24 @@ class MapBuilder:
             self.map.map_tiles[y+1][x].put_wall(0)
         return self
 
+    def set_south_wall_to_tiles_from_to(self, x_from,x_to, y):
+        for i in range(x_from,x_to+1):
+            self.map.map_tiles[y][i].put_wall(2)
+            if self.map.y_dim - 1 > y:
+                self.map.map_tiles[y+1][i].put_wall(0)
+        return self
+
     def set_east_wall_to_tile(self,x,y):
         self.map.map_tiles[y][x].put_wall(3)
         if self.map.x_dim -1 > x:
             self.map.map_tiles[y][x + 1].put_wall(1)
+        return self
+
+    def set_east_wall_to_tile_from_to(self, x, y_from,y_to):
+        for i in range(y_from,y_to+1):
+            self.map.map_tiles[i][x].put_wall(3)
+            if self.map.x_dim -1 > x:
+                self.map.map_tiles[i][x + 1].put_wall(1)
         return self
 
     def set_robot(self,x,y):
@@ -273,9 +337,8 @@ class MapBuilder:
 
     def set_beeper(self,x,y):
         self.map.map_tiles[y][x].has_beeper = True
-        beeper = PhotoImage(file="../robot_karel/beeper.png")
-        self.map.beeper_label = Label(self.map.master,image = beeper, borderwidth=0, highlightthickness=0)
-        self.map.beeper_label.place(x=x*50+18, y=y*50+18)  # 16
+        self.map.beeper_x_coord_list.append(x)
+        self.map.beeper_y_coord_list.append(y)
         return self
 
     def build(self):
