@@ -1,9 +1,10 @@
 from tkinter import *
 import time
 
-sleep_time = 0.005
+
+sleep_time = 0.01
 tile_px_size = 50
-x_px_offset = 10
+x_px_offset = 8
 y_px_offset = 8
 
 direction = {
@@ -18,15 +19,33 @@ karel_basic_addres ={
     3: "../RobotKarelGame/pictures/karel/karelBasic/karelE.png",
     1: "../RobotKarelGame/pictures/karel/karelBasic/karelW.png"
 }
-karel_picture_states = { # 0 no beeper, 1 has beeper
-    0: {    0: "../RobotKarelGame/pictures/karel/karelBasic/karelN.png",
-            2: "../RobotKarelGame/pictures/karel/karelBasic/karelS.png",
-            3: "../RobotKarelGame/pictures/karel/karelBasic/karelE.png",
-            1: "../RobotKarelGame/pictures/karel/karelBasic/karelW.png"},
-    1: {    0: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperN.png",
-            2: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperS.png",
-            3: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperE.png",
-            1: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperW.png"}
+karel_picture_states = { # 0 no beeper, 1 has something
+    0: {    0:{     0: "../RobotKarelGame/pictures/karel/karelBasic/karelN.png",
+                    2: "../RobotKarelGame/pictures/karel/karelBasic/karelS.png",
+                    3: "../RobotKarelGame/pictures/karel/karelBasic/karelE.png",
+                    1: "../RobotKarelGame/pictures/karel/karelBasic/karelW.png"}},
+    1: {    1:{     0: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperN.png",#0token,1beeper
+                    2: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperS.png",
+                    3: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperE.png",
+                    1: "../RobotKarelGame/pictures/karel/KarelBeeper/karel_beeperW.png"},
+            0:      {0: "../RobotKarelGame/pictures/karel/karelToken/karelN.png",
+                    2: "../RobotKarelGame/pictures/karel/karelToken/karelS.png",
+                    3: "../RobotKarelGame/pictures/karel/karelToken/karelE.png",
+                    1: "../RobotKarelGame/pictures/karel/karelToken/karelW.png"}
+            }
+}
+
+token_values_pictures = {
+    0: "../RobotKarelGame/pictures/tokens/token_0.png",
+    1: "../RobotKarelGame/pictures/tokens/token_1.png",
+    2: "../RobotKarelGame/pictures/tokens/token_2.png",
+    3: "../RobotKarelGame/pictures/tokens/token_3.png",
+    4: "../RobotKarelGame/pictures/tokens/token_4.png",
+    5: "../RobotKarelGame/pictures/tokens/token_5.png",
+    6: "../RobotKarelGame/pictures/tokens/token_6.png",
+    7: "../RobotKarelGame/pictures/tokens/token_7.png",
+    8: "../RobotKarelGame/pictures/tokens/token_8.png",
+    9: "../RobotKarelGame/pictures/tokens/token_9.png",
 }
 
 class Game:
@@ -35,23 +54,72 @@ class Game:
         self.karel = map.karel
         self.map = map
         self.robot_label =  Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0, highlightthickness=0)
-        self.beeper_picture = PhotoImage(file="../RobotKarelGame/pictures/beeper.png")
+        self.beeper_picture = { # 0 blue, 1 green, 2 purple
+            0: PhotoImage(file="../RobotKarelGame/pictures/beepers/beeper_b.png"),
+            1: PhotoImage(file="../RobotKarelGame/pictures/beepers/beeper_g.png"),
+            2: PhotoImage(file="../RobotKarelGame/pictures/beepers/beeper_p.png"),
+        }
         self.beeper_label_list = []
-        #todo change so beepers have field not just one
+        self.token_label_list = []
+        self.frame = NONE
+        self.background_label_list = []
+        self.background_label_column_list = []
+        self.background_label_row_list = []
+
 
     def paint_init_conditions_on_background(self):
+        #painted_map = paint_map.PaintMap(self.map.master, self.map)
+        #self.background_label_list=painted_map.label_list
+        self.map.karel.karel_picture = PhotoImage(
+            file=karel_picture_states.get(self.map.karel.has_beeper or self.map.karel.has_token).get(self.map.karel.has_beeper).get(self.karel.facing_directionInt))
         self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
         self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset, y=self.karel.y * tile_px_size + y_px_offset)
         for i in range(0,len(self.map.beeper_x_coord_list)):
-            self.beeper_label_list.append(Label(self.map.master, image=self.beeper_picture, borderwidth=0, highlightthickness=0))
+            self.beeper_label_list.append(Label(self.map.master, image=self.beeper_picture.get(self.map.map_tiles[self.map.beeper_y_coord_list[i]][self.map.beeper_x_coord_list[i]].color), borderwidth=0, highlightthickness=0))
             self.beeper_label_list[i].place(x=self.map.beeper_x_coord_list[i] * tile_px_size + 18, y=self.map.beeper_y_coord_list[i] * tile_px_size + 18)  # 16
+        for i in range(0, len(self.map.token_x_coord_list)):
+            self.token_label_list.append(Label(self.map.master, image=self.map.map_tiles[self.map.token_y_coord_list[i]][self.map.token_x_coord_list[i]].token.picture, borderwidth=0, highlightthickness=0))
+            self.token_label_list[i].place(x=self.map.token_x_coord_list[i] * tile_px_size + 12, y=self.map.token_y_coord_list[i] * tile_px_size + 12)  # 16
+        self.map.master.update()
+
+    def paint_init_conditions_on_background2(self, frame,tiles_label_list,column_list,row_list):
+        self.frame = frame
+        self.background_label_list=tiles_label_list
+        self.background_label_column_list = column_list
+        self.background_label_row_list = row_list
+        self.frame.pack()
+        for i in range(0,len(self.background_label_list)):
+            self.background_label_list[i].grid(row = row_list[i],column = column_list[i])
+
+        # painted_map = paint_map.PaintMap(self.map.master, self.map)
+        # self.background_label_list=painted_map.label_list
+        self.map.karel.karel_picture = PhotoImage(
+            file=karel_picture_states.get(self.map.karel.has_beeper or self.map.karel.has_token).get(
+                self.map.karel.has_beeper).get(self.karel.facing_directionInt))
+        self.robot_label = Label(self.frame, image=self.map.karel.karel_picture, borderwidth=0,
+                                 highlightthickness=0)
+        self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset,
+                               y=self.karel.y * tile_px_size + y_px_offset)
+        for i in range(0, len(self.map.beeper_x_coord_list)):
+            self.beeper_label_list.append(Label(self.frame, image=self.beeper_picture.get(
+                self.map.map_tiles[self.map.beeper_y_coord_list[i]][self.map.beeper_x_coord_list[i]].color),
+                                                borderwidth=0, highlightthickness=0))
+            self.beeper_label_list[i].place(x=self.map.beeper_x_coord_list[i] * tile_px_size + 18,
+                                            y=self.map.beeper_y_coord_list[i] * tile_px_size + 18)  # 16
+        for i in range(0, len(self.map.token_x_coord_list)):
+            self.token_label_list.append(Label(self.frame,
+                                               image=self.map.map_tiles[self.map.token_y_coord_list[i]][
+                                                   self.map.token_x_coord_list[i]].token.picture, borderwidth=0,
+                                               highlightthickness=0))
+            self.token_label_list[i].place(x=self.map.token_x_coord_list[i] * tile_px_size + 12,
+                                           y=self.map.token_y_coord_list[i] * tile_px_size + 12)  # 16
         self.map.master.update()
 
     def turn_left(self):
         self.karel.turn_left()
         time.sleep(sleep_time)
         self.robot_label.destroy()
-        self.map.karel.karel_picture= PhotoImage(file = karel_picture_states.get(self.map.karel.has_beeper).get(self.karel.facing_directionInt))
+        self.map.karel.karel_picture= PhotoImage( file=karel_picture_states.get(self.map.karel.has_beeper or self.map.karel.has_token).get(self.map.karel.has_beeper).get(self.karel.facing_directionInt))
         self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
         self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset, y=self.karel.y * tile_px_size + y_px_offset)
         self.map.master.update()
@@ -134,6 +202,30 @@ class Game:
         print("is on beeper: {0}".format(self.map.map_tiles[self.karel.y][self.karel.x].has_beeper))
         return self.map.map_tiles[self.karel.y][self.karel.x].has_beeper
 
+    def is_on_token(self):
+        return self.map.map_tiles[self.karel.y][self.karel.x].has_token
+
+    def is_on_green(self):
+        return self.map.map_tiles[self.karel.y][self.karel.x].color==1
+
+    def is_on_purple(self):
+        return self.map.map_tiles[self.karel.y][self.karel.x].color==2
+
+    def has_beeper(self):
+        return self.map.karel.has_beeper
+
+    def has_token(self):
+        return self.map.karel.has_token
+
+    def token_value(self):
+        return self.map.karel.token.value
+
+    def ground_token_value(self):
+        if self.is_on_token():
+            return self.map.map_tiles[self.map.karel.y][self.map.karel.x].token.value
+        else:
+            print("not currently standing on any token")
+
     def pick_up_beeper(self):
         if self.is_on_beeper() == True:
             if self.karel.has_beeper == False:
@@ -151,7 +243,7 @@ class Game:
         #puts new picture of karel
         self.robot_label.destroy()
         time.sleep(sleep_time)
-        self.map.karel.karel_picture = PhotoImage(file=karel_picture_states.get(self.map.karel.has_beeper).get( self.karel.facing_directionInt))
+        self.map.karel.karel_picture = PhotoImage( file=karel_picture_states.get(self.map.karel.has_beeper or self.map.karel.has_token).get(self.map.karel.has_beeper).get(self.karel.facing_directionInt))
         self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
         self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset,y=self.karel.y * tile_px_size + y_px_offset)
         self.map.master.update()
@@ -166,9 +258,91 @@ class Game:
                 self.map.beeper_x_coord_list.append(self.karel.x)
                 self.map.beeper_y_coord_list.append(self.karel.y)
                 self.robot_label.destroy()
-                self.beeper_label_list.append(Label(self.map.master, image=self.beeper_picture, borderwidth=0, highlightthickness=0))
+                self.beeper_label_list.append(Label(self.map.master, image=self.beeper_picture.get(self.map.map_tiles[self.karel.y][self.karel.x].color), borderwidth=0, highlightthickness=0))
                 self.beeper_label_list[-1].place(x=self.karel.x  * tile_px_size + 18,y=self.karel.y  * tile_px_size + 18)  # 16
-                self.map.karel.karel_picture = PhotoImage(file=karel_picture_states.get(self.map.karel.has_beeper).get( self.karel.facing_directionInt))
+                self.map.karel.karel_picture = PhotoImage( file=karel_picture_states.get(self.map.karel.has_beeper or self.map.karel.has_token).get(self.map.karel.has_beeper).get(self.karel.facing_directionInt))
+                self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
+                self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset,y=self.karel.y * tile_px_size + y_px_offset)
+                self.map.master.update()
+                time.sleep(sleep_time/5)
+
+
+    def pick_up_token(self):
+        if self.is_on_token() == True:
+            if self.karel.has_token == False:
+                self.karel.has_token = True
+                self.karel.token = self.map.map_tiles[self.karel.y][self.karel.x].token
+                self.map.map_tiles[self.karel.y][self.karel.x].token=NONE
+                self.map.map_tiles[self.karel.y][self.karel.x].has_token = False
+                #finds the beeper label corresponding to place where karel is and deletes it
+                for i in range(0,len(self.map.token_x_coord_list)):
+                    if self.karel.x == self.map.token_x_coord_list[i] and self.karel.y == self.map.token_y_coord_list[i]:
+                        self.token_label_list[i].destroy()
+                        del self.token_label_list[i]
+                        del self.map.token_x_coord_list[i]
+                        del self.map.token_y_coord_list[i]
+                        self.map.master.update()
+                        break
+        #puts new picture of karel
+        self.robot_label.destroy()
+        time.sleep(sleep_time)
+        self.map.karel.karel_picture = PhotoImage( file=karel_picture_states.get(self.map.karel.has_beeper or self.map.karel.has_token).get(self.map.karel.has_beeper).get(self.karel.facing_directionInt))
+        self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
+        self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset,y=self.karel.y * tile_px_size + y_px_offset)
+        self.map.master.update()
+
+    def put_down_token(self):
+        if self.is_on_token() == False:
+            if self.karel.has_token == True:
+                self.karel.has_token = False
+                self.map.map_tiles[self.karel.y][self.karel.x].has_token = True
+                self.map.map_tiles[self.karel.y][self.karel.x].token=self.karel.token
+                self.karel.token=NONE
+                #picture update
+                time.sleep(sleep_time)
+                self.map.token_x_coord_list.append(self.karel.x)
+                self.map.token_y_coord_list.append(self.karel.y)
+                self.robot_label.destroy()
+                self.token_label_list.append(Label(self.map.master, image=self.map.map_tiles[self.karel.y][self.karel.x].token.picture, borderwidth=0, highlightthickness=0))
+                self.token_label_list[-1].place(x=self.karel.x  * tile_px_size + 12,y=self.karel.y  * tile_px_size + 12)  # 16
+                self.map.karel.karel_picture = PhotoImage( file=karel_picture_states.get(self.map.karel.has_beeper or self.map.karel.has_token).get(self.map.karel.has_beeper).get(self.karel.facing_directionInt))
+                self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
+                self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset,y=self.karel.y * tile_px_size + y_px_offset)
+                self.map.master.update()
+                time.sleep(sleep_time/5)
+
+    def swap_tokens(self):
+        if self.is_on_token() == True:
+            if self.karel.has_token == True:
+                tmp_token = self.map.map_tiles[self.karel.y][self.karel.x].token
+                self.map.map_tiles[self.karel.y][self.karel.x].token=self.karel.token
+                self.karel.token=tmp_token
+                #picture update
+                time.sleep(sleep_time)
+                #finds the beeper label corresponding to place where karel is and deletes it
+                for i in range(0,len(self.map.token_x_coord_list)):
+                    if self.karel.x == self.map.token_x_coord_list[i] and self.karel.y == self.map.token_y_coord_list[i]:
+                        self.token_label_list[i].destroy()
+                        del self.token_label_list[i]
+                        del self.map.token_x_coord_list[i]
+                        del self.map.token_y_coord_list[i]
+                        self.map.master.update()
+                        break
+                self.map.token_x_coord_list.append(self.karel.x)
+                self.map.token_y_coord_list.append(self.karel.y)
+                #animate karel swap
+                self.karel.has_token=False
+                self.robot_label.destroy()
+                self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
+                self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset,y=self.karel.y * tile_px_size + y_px_offset)
+                self.map.master.update()
+                time.sleep(sleep_time / 15)
+
+                self.karel.has_token=True
+                self.robot_label.destroy()
+                self.token_label_list.append(Label(self.map.master, image=self.map.map_tiles[self.karel.y][self.karel.x].token.picture, borderwidth=0, highlightthickness=0))
+                self.token_label_list[-1].place(x=self.karel.x  * tile_px_size + 12,y=self.karel.y  * tile_px_size + 12)  # 16
+                self.map.karel.karel_picture = PhotoImage( file=karel_picture_states.get(self.map.karel.has_beeper or self.map.karel.has_token).get(self.map.karel.has_beeper).get(self.karel.facing_directionInt))
                 self.robot_label = Label(self.map.master, image=self.map.karel.karel_picture, borderwidth=0,highlightthickness=0)
                 self.robot_label.place(x=self.karel.x * tile_px_size + x_px_offset,y=self.karel.y * tile_px_size + y_px_offset)
                 self.map.master.update()
@@ -185,6 +359,8 @@ class RobotKarel:
         self.facing_directionStr = direction.get(self.facing_directionInt)
         self.has_beeper = False
         self.karel_picture = PhotoImage(file = "../RobotKarelGame/pictures/karel/karelBasic/karelN.png")
+        self.has_token = False
+        self.token = NONE
 
     def turn_left(self):
         self.facing_directionInt = (self.facing_directionInt+1)%4
@@ -207,6 +383,9 @@ class MapTile:
         self.has_wall_E = False
         self.has_wall_W = False
         self.has_robot = False
+        self.color = 0 #0 blue,1 green,2 purple
+        self.has_token = False
+        self.token = NONE
 
     def put_wall(self, direction_where):
         if direction_where == 0:
@@ -217,6 +396,25 @@ class MapTile:
             self.has_wall_S = True
         if direction_where == 3:
             self.has_wall_E = True
+
+    def put_token(self, token):
+        if not self.has_token:
+            self.has_token = True
+            self.token = token
+            return True
+        else:
+            return False
+
+    def give_token(self):
+        if self.has_token:
+            token = self.token
+            self.token = NONE
+            self.has_token=False
+            return token
+
+
+    def set_color(self,color):
+        self.color=color
 
     def print_top(self):
         return "._ " if self.has_wall_N else ".   "
@@ -229,6 +427,8 @@ class MapTile:
             wallL ="|"
         if self.has_wall_E:
             wallR = "|"
+        if self.has_token:
+            middle = "T"
         if self.has_robot:
             middle = "R"
         if self.has_beeper:
@@ -257,6 +457,9 @@ class WorldMap:
 
         self.beeper_x_coord_list=[]
         self.beeper_y_coord_list=[]
+
+        self.token_x_coord_list =[]
+        self.token_y_coord_list =[]
 
         for j in range(0, y_dim):
             for k in range(0, x_dim):
@@ -341,7 +544,35 @@ class MapBuilder:
         self.map.beeper_y_coord_list.append(y)
         return self
 
+    def unset_beeper(self,x,y):
+        self.map.map_tiles[y][x].has_beeper = False
+        for i in range(0, len(self.map.beeper_x_coord_list)):
+            if x == self.map.beeper_x_coord_list[i] and y == self.map.beeper_y_coord_list[i]:
+                del self.map.beeper_x_coord_list[i]
+                del self.map.beeper_y_coord_list[i]
+                break
+        return self
+
+    def set_color(self, x, y,color):
+        self.map.map_tiles[y][x].color = color
+        return self
+
+    def set_token(self,x,y,value):
+        self.map.map_tiles[y][x].token=Token(value)
+        self.map.map_tiles[y][x].has_token = True
+        self.map.token_x_coord_list.append(x)
+        self.map.token_y_coord_list.append(y)
+        return self
+
     def build(self):
         print(self.map.__str__())
         return self.map
+
+
+class Token:
+
+    def __init__(self, value):
+        self.value = value
+        self.picture = PhotoImage(file =token_values_pictures.get(value))
+
 

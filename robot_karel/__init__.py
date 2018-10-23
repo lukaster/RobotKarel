@@ -14,10 +14,14 @@ game.paint_init_conditions_on_background()
 #################################################
 ###your code here###
 
-
+for i in range(0,5):
+    while i<3:
+        print(i)
+        i=i+1
 
 
 ##################################################
 root.mainloop()#keep it on the screen
+
 
 #pixel je 0.265mm

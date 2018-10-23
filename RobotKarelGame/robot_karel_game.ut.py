@@ -160,5 +160,7 @@ class TestGame(unittest.TestCase):
         self.func.turn_left()
         self.assertTrue(self.func.is_in_front_of_the_wall() == True)
         print("------------")
+
+
 if __name__ == '__main__':
     unittest.main()
